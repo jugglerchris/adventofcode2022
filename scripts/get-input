@@ -1,0 +1,16 @@
+#!/bin/bash
+
+day=$1
+
+# Keep session key here
+. cookies.sh
+
+wget --no-cookies --header "Cookie: session=$SESSION" https://adventofcode.com/2022/day/$day/input && mv input data/day$day.txt
+
+git add data/day$day.txt
+
+if [ ! -f examples/day${day}.rs ]; then
+    sed -e "s/\\\$N/$day/g" < examples/template.rs > examples/day${day}.rs
+    git add examples/day${day}.rs
+fi
+git commit -m"Add day $day input" data/day$day.txt
