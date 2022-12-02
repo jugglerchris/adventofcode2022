@@ -1,3 +1,4 @@
+#[allow(unused)]
 use adventofcode2022::{get_input,parse_lines};
 
 type Data = ();
