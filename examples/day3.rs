@@ -32,8 +32,24 @@ fn part1(data: &Data) -> usize {
     }
     sum
 }
+
+fn join(sets: &(HashSet<u8>, HashSet<u8>)) -> HashSet<u8> {
+    sets.0.union(&sets.1).cloned().collect()
+}
+fn isect(set1: &HashSet<u8>, set2: &HashSet<u8>) -> HashSet<u8> {
+    set1.intersection(set2).cloned().collect()
+}
+
 fn part2(data: &Data) -> usize {
-    unimplemented!()
+    let mut sum = 0usize;
+    for groups in data.chunks(3) {
+        let mut intersec = join(&groups[0]);
+        intersec = isect(&intersec, &join(&groups[1]));
+        intersec = isect(&intersec, &join(&groups[2]));
+        assert_eq!(intersec.len(), 1);
+        sum += intersec.into_iter().next().unwrap() as usize;
+    }
+    sum
 }
 
 #[test]
@@ -46,8 +62,8 @@ ttgJtRGJQctTZtZT
 CrZsJsPPZsGzwwsLwLmpwMDw"#;
     let data = parse_input(&tests);
 
-    assert_eq!(part1(&data), 156);
-    assert_eq!(part2(&data), 0);
+    assert_eq!(part1(&data), 157);
+    assert_eq!(part2(&data), 70);
 }
 
 fn main() -> std::io::Result<()>{
