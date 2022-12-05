@@ -26,7 +26,12 @@ fn part1(data: &Data) -> usize {
         .count()
 }
 fn part2(data: &Data) -> usize {
-    unimplemented!()
+    data.iter()
+        .filter(|Info(r1, r2)| {
+            (r1.start <= r2.start && r1.end >= r2.start) ||
+            (r2.start <= r1.start && r2.end >= r1.start)
+          })
+        .count()
 }
 
 #[test]
@@ -40,7 +45,7 @@ fn test() {
     let data = parse_input(&tests);
 
     assert_eq!(part1(&data), 2);
-    assert_eq!(part2(&data), 0);
+    assert_eq!(part2(&data), 4);
 }
 
 fn main() -> std::io::Result<()>{
