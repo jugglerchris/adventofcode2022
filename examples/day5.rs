@@ -16,10 +16,39 @@ regex_parser!(parse_move: Move {
 
 type Stack = Vec<u8>;
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 struct State {
-    stacks: Vec<Stack>,
-    moves: Vec<Move>,
+    pub stacks: Vec<Stack>,
+    pub moves: Vec<Move>,
+}
+
+impl State {
+    fn run_move(&mut self, mv: &Move) {
+        for _ in 0..mv.count {
+            let item = self.stacks[mv.from-1].pop().unwrap();
+            self.stacks[mv.to-1].push(item);
+        }
+    }
+    fn run_move_9001(&mut self, mv: &Move) {
+        let mut temp = vec![];
+        for _ in 0..mv.count {
+            let item = self.stacks[mv.from-1].pop().unwrap();
+            temp.push(item);
+        }
+        for _ in 0..mv.count {
+            let item = temp.pop().unwrap();
+            self.stacks[mv.to-1].push(item);
+        }
+    }
+    fn tops(&self) -> String {
+        let mut result = String::new();
+        for stack in &self.stacks {
+            if let Some(l) = stack.last() {
+                result.push(*l as char);
+            }
+        }
+        result
+    }
 }
 
 type Data = State;
@@ -50,11 +79,20 @@ fn parse_input(input: &str) -> Data {
 }
 
 fn part1(data: &Data) -> String {
-    dbg!(data);
-    unimplemented!()
+    let mut state = data.clone();
+    // Using data's moves, not state for borrowing
+    for mv in &data.moves {
+        state.run_move(mv);
+    }
+    state.tops()
 }
 fn part2(data: &Data) -> String {
-    unimplemented!()
+    let mut state = data.clone();
+    // Using data's moves, not state for borrowing
+    for mv in &data.moves {
+        state.run_move_9001(mv);
+    }
+    state.tops()
 }
 
 #[test]
@@ -71,7 +109,7 @@ move 1 from 1 to 2"#;
     let data = parse_input(&tests);
 
     assert_eq!(part1(&data), "CMZ");
-    //assert_eq!(part2(&data), 0);
+    assert_eq!(part2(&data), "MCD");
 }
 
 fn main() -> std::io::Result<()>{
