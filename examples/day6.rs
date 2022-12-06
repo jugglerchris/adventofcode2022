@@ -6,40 +6,44 @@ fn parse_input(input: &str) -> Data {
     input.into()
 }
 
-fn part1(data: &Data) -> usize {
+fn find_start_length(data: &Data, length: usize) -> usize {
     let bytes = data.as_bytes();
     let mut l = 0;
-    for chunk in bytes.windows(4) {
+    for chunk in bytes.windows(length) {
         let mut bits = 0usize;
         for &b in chunk {
             bits |= 1<<((b - b'a') as usize)
         }
-        if bits.count_ones() == 4 {
-            return l+4;
+        if bits.count_ones() == length as u32 {
+            return l+length;
         }
         l += 1;
     }
     panic!()
 }
+
+fn part1(data: &Data) -> usize {
+    find_start_length(data, 4)
+}
 fn part2(data: &Data) -> usize {
-    unimplemented!()
+    find_start_length(data, 14)
 }
 
 #[test]
 fn test() {
     let tests = &[
-        ("mjqjpqmgbljsphdztnvjfqwrcgsmlb", 7, 0),
-        ("bvwbjplbgvbhsrlpgdmjqwftvncz", 5, 0),
-        ("nppdvjthqldpwncqszvftbrmjlhg", 6, 0),
-        ("nznrnfrfntjfmvfwmzdfjlvtqnbhcprsg", 10, 0),
-        ("zcfzfwzzqfrljwzlrfnpqdbhtmscgvjw", 11, 0),
+        ("mjqjpqmgbljsphdztnvjfqwrcgsmlb", 7, 19),
+        ("bvwbjplbgvbhsrlpgdmjqwftvncz", 5, 23),
+        ("nppdvjthqldpwncqszvftbrmjlhg", 6, 23),
+        ("nznrnfrfntjfmvfwmzdfjlvtqnbhcprsg", 10, 29),
+        ("zcfzfwzzqfrljwzlrfnpqdbhtmscgvjw", 11, 26),
     ];
 
-    for &(s, res, _) in tests {
+    for &(s, res, res2) in tests {
         let data = parse_input(s);
         assert_eq!(part1(&data), res);
+        assert_eq!(part2(&data), res2);
     }
-    //assert_eq!(part2(&data), 0);
 }
 
 fn main() -> std::io::Result<()>{
