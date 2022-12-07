@@ -20,7 +20,7 @@ regex_parser!(parse_command: Command {
     CDUP = r#"^\$ cd \.\."# => | | { Command::CdUp },
     CD = r#"^\$ cd (\w+)"# => |dir: String| { Cd(dir) },
     LS = r#"^\$ ls"# => | | { Ls },
-    FILE = r#"^(\d+) (\w+)"# => |size: usize, file: String| { File(size, file) },
+    FILE = r#"^(\d+) (.+)"# => |size: usize, file: String| { File(size, file) },
     DIR = r#"^dir (\w+)"# => |name: String| { DirEntry(name) }
 });
 
@@ -34,6 +34,7 @@ type Subdirs = HashMap<String, usize>;
 
 #[derive(Clone, Debug)]
 struct Dir {
+    #[allow(unused)]
     name: String,
     files: Files,
     subdirs: Subdirs,
@@ -115,7 +116,16 @@ fn part1(data: &Data) -> usize {
 }
 
 fn part2(data: &Data) -> usize {
-    unimplemented!()
+    let mut dirs = traverse(data);
+    calc_dir_sizes(&mut dirs, 0);
+
+    let space_left = 70000000 - dirs[0].contained_size.unwrap();
+    let needed = 30000000 - space_left;
+    dirs.iter()
+        .filter(|d| d.contained_size.unwrap() >= needed)
+        .map(|d| d.contained_size.unwrap())
+        .min()
+        .unwrap()
 }
 
 #[test]
@@ -146,7 +156,7 @@ $ ls
     let data = parse_input(&tests);
 
     assert_eq!(part1(&data), 95437);
-//    assert_eq!(part2(&data), 0);
+    assert_eq!(part2(&data), 24933642);
 }
 
 fn main() -> std::io::Result<()>{
