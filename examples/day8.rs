@@ -70,8 +70,101 @@ fn part1(data: &Data) -> usize {
            .map(|row| row.iter().filter(|b| **b).count())
            .sum()
 }
+
+fn calc_scenic_score(data: &Data, x: usize, y: usize) -> usize {
+    let start_height = data[y][x];
+    let height = data.len();
+    let width = data[0].len();
+    let mut max = 1;
+    // Look up
+    {
+        let mut seen = 0;
+        let mut highest = 0;
+        let mut ny = y;
+        while ny > 0 {
+            ny -= 1;
+            let tree = data[ny][x];
+            seen += 1;
+            if tree >= highest {
+                highest = tree;
+            }
+            if tree >= start_height {
+                // No more after this.
+                break;
+            }
+        }
+        max *= seen;
+    }
+    // Look down
+    {
+        let mut seen = 0;
+        let mut highest = 0;
+        let mut ny = y;
+        while ny+1 < height {
+            ny += 1;
+            let tree = data[ny][x];
+            seen += 1;
+            if tree >= highest {
+                highest = tree;
+            }
+            if tree >= start_height {
+                // No more after this.
+                break;
+            }
+        }
+        max *= seen;
+    }
+    // Look left
+    {
+        let mut seen = 0;
+        let mut highest = 0;
+        let mut nx = x;
+        while nx > 0 {
+            nx -= 1;
+            let tree = data[y][nx];
+            seen += 1;
+            if tree >= highest {
+                highest = tree;
+            }
+            if tree >= start_height {
+                // No more after this.
+                break;
+            }
+        }
+        max *= seen;
+    }
+    // Look right
+    {
+        let mut seen = 0;
+        let mut highest = 0;
+        let mut nx = x;
+        while nx+1 < width {
+            nx += 1;
+            let tree = data[y][nx];
+            seen += 1;
+            if tree >= highest {
+                highest = tree;
+            }
+            if tree >= start_height {
+                // No more after this.
+                break;
+            }
+        }
+        max *= seen;
+    }
+    max
+}
+
 fn part2(data: &Data) -> usize {
-    unimplemented!()
+    let width = data[0].len();
+    let height = data.len();
+
+    (0..height).map(|y| {
+        (0..width).map(|x| calc_scenic_score(data, x, y))
+                  .max()
+                  .unwrap()
+    })
+               .max().unwrap()
 }
 
 #[test]
@@ -84,7 +177,7 @@ fn test() {
     let data = parse_input(&tests);
 
     assert_eq!(part1(&data), 21);
-    //assert_eq!(part2(&data), 0);
+    assert_eq!(part2(&data), 8);
 }
 
 fn main() -> std::io::Result<()>{
