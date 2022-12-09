@@ -1,5 +1,5 @@
 #[allow(unused)]
-use adventofcode2022::{get_input,parse_lines};
+use adventofcode2022::{get_input,parse_lines,regex_parser};
 
 type Data = ();
 fn parse_input(input: &str) -> Data {
