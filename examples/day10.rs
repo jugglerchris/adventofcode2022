@@ -43,8 +43,44 @@ fn part1(data: &Data) -> isize {
     }
     tot_sig
 }
-fn part2(data: &Data) -> usize {
-    unimplemented!()
+fn part2(data: &Data) -> String {
+    let mut s = String::new();
+
+    let get_pixel = |t, x| {
+        let tt = t % 40;
+        if (tt as isize - x as isize).abs() <= 1 {
+            if tt == 39 {
+                "#\n"
+            } else {
+                "#"
+            }
+        } else {
+            if tt == 39 {
+                ".\n"
+            } else {
+                "."
+            }
+        }
+    };
+    let mut t = 0isize;
+    let mut x = 1;
+    for insn in data {
+        (t, x, insn);
+        s.push_str(get_pixel(t, x));
+        match insn {
+            Insn::Noop => {
+                t += 1;
+            }
+            Insn::Addx(n) => {
+                t += 1;
+                s.push_str(get_pixel(t, x));
+                t += 1;
+                x += n;
+            }
+        }
+    }
+    println!("{}", s);
+    s
 }
 
 #[test]
@@ -198,7 +234,13 @@ noop"#;
     let data = parse_input(&tests);
 
     assert_eq!(part1(&data), 13140);
-    //assert_eq!(part2(&data), 0);
+    assert_eq!(part2(&data), r#"##..##..##..##..##..##..##..##..##..##..
+###...###...###...###...###...###...###.
+####....####....####....####....####....
+#####.....#####.....#####.....#####.....
+######......######......######......####
+#######.......#######.......#######.....
+"#);
 }
 
 fn main() -> std::io::Result<()>{
