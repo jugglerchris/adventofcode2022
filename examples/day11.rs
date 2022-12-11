@@ -108,7 +108,40 @@ fn part1(data: &Data) -> usize {
     inspects[0] * inspects[1]
 }
 fn part2(data: &Data) -> usize {
-    unimplemented!()
+    let mut monkeys: Vec<Monkey> = data.clone();
+    let modulus: Item = monkeys.iter()
+                               .map(|m| m.divisor)
+                               .product();
+    for round in 0..10000 {
+        for i in 0..monkeys.len() {
+            let items = monkeys[i].items.iter().cloned().collect::<Vec<_>>();
+            monkeys[i].items.clear();
+            for mut item in items {
+                use Operation::*;
+                use Arg::*;
+                match monkeys[i].op {
+                    Times(Old) => { item *= item; }
+                    Times(Const(n)) => { item *= n; }
+                    Add(Old) => { item += item; }
+                    Add(Const(n)) => { item += n; }
+                }
+                item = item % modulus;
+                let other = if (item % monkeys[i].divisor) == 0 {
+                    monkeys[i].throw_true
+                } else {
+                    monkeys[i].throw_false
+                };
+                monkeys[other].items.push_back(item);
+                monkeys[i].inspects += 1;
+            }
+        }
+    }
+    let mut inspects =
+        monkeys.iter()
+               .map(|m| m.inspects)
+               .collect::<Vec<_>>();
+    inspects.sort_by(|a, b| Ord::cmp(b, a));
+    inspects[0] * inspects[1]
 }
 
 #[test]
@@ -143,7 +176,7 @@ Monkey 3:
     let data = parse_input(&tests);
 
     assert_eq!(part1(&data), 10605);
-    //assert_eq!(part2(&data), 0);
+    assert_eq!(part2(&data), 2713310158);
 }
 
 fn main() -> std::io::Result<()>{
