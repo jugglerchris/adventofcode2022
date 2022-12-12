@@ -72,7 +72,42 @@ fn part1(data: &Data) -> usize {
     dists[data.end.1 as usize][data.end.0 as usize].unwrap()
 }
 fn part2(data: &Data) -> usize {
-    unimplemented!()
+    let mut dists = data.map.iter()
+                        .map(|v| v.iter().map(|_| None).collect::<Vec<Option<usize>>>())
+                        .collect::<Vec<_>>();
+    let mut work = vec![((data.end.0 as usize, data.end.1 as usize), 0)];
+
+    let mut shortest_dist = usize::MAX;
+
+    while !work.is_empty() {
+        let ((x, y), dist) = work.pop().unwrap();
+        let height = data.map[y][x];
+        let olddist = dists[y][x];
+        if height == 0 && dist < shortest_dist {
+            shortest_dist = dist;
+        }
+        if height == 0 {
+            // We've already found the bottom
+            continue;
+        }
+        if olddist.is_none() || olddist.unwrap() > dist {
+            // Better path
+            dists[y][x] = Some(dist);
+            if y > 0 && data.map[y-1][x] >= (height-1) {
+                work.push(((x, y-1), dist+1));
+            }
+            if y+1 < data.map.len() && data.map[y+1][x] >= (height-1) {
+                work.push(((x, y+1), dist+1));
+            }
+            if x > 0 && data.map[y][x-1] >= (height-1) {
+                work.push(((x-1, y), dist+1));
+            }
+            if x+1 < data.map[0].len() && data.map[y][x+1] >= (height-1) {
+                work.push(((x+1, y), dist+1));
+            }
+        }
+    }
+    shortest_dist
 }
 
 #[test]
@@ -85,7 +120,7 @@ abdefghi"#;
     let data = parse_input(&tests);
 
     assert_eq!(part1(&data), 31);
-    //assert_eq!(part2(&data), 0);
+    assert_eq!(part2(&data), 29);
 }
 
 fn main() -> std::io::Result<()>{
