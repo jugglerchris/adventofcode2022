@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 #[allow(unused)]
 use adventofcode2022::{get_input,parse_lines,regex_parser};
 
@@ -139,7 +141,38 @@ fn part1(data: &Data) -> usize {
     sum
 }
 fn part2(data: &Data) -> usize {
-    unimplemented!()
+    use Num::*;
+    let mut v = vec![
+        List(vec![List(vec![Int(2)])]),
+        List(vec![List(vec![Int(6)])]),
+    ];
+    for (a, b) in data {
+        v.push(a.clone());
+        v.push(b.clone());
+    }
+    v.sort_by(|a, b| {
+        if eq(a, b) {
+            Ordering::Equal
+        } else if lt(a, b) {
+            Ordering::Less
+        } else {
+            Ordering::Greater
+        }
+    });
+    let mut idx1 = usize::MAX;
+    let mut idx2 = usize::MAX;
+    let n1 = List(vec![List(vec![Int(2)])]);
+    let n2 = List(vec![List(vec![Int(6)])]);
+    for (i, n) in v.iter().enumerate() {
+        if eq(n, &n1) {
+            assert_eq!(idx1, usize::MAX);
+            idx1 = i+1;
+        } else if eq(n, &n2) {
+            assert_eq!(idx2, usize::MAX);
+            idx2 = i+1;
+        }
+    }
+    idx1*idx2
 }
 
 #[test]
@@ -176,7 +209,7 @@ fn test() {
     */
 
     assert_eq!(part1(&data), 13);
-    //assert_eq!(part2(&data), 0);
+    assert_eq!(part2(&data), 140);
 }
 
 fn main() -> std::io::Result<()>{
