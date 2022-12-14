@@ -72,6 +72,41 @@ fn part1(data: &Data) -> usize {
         }
     }
 }
+
+/*
+fn draw_cave(cave: &Data) {
+    // Clear screen
+    //print!("\x1b[H\x1b[2J\x1b[3J");
+    print!("\x1b[H\x1b[3J");
+    let miny = cave.iter()
+                   .map(|(_, y)| *y)
+                   .min()
+                   .unwrap();
+    let maxy = cave.iter()
+                   .map(|(_, y)| *y)
+                   .max()
+                   .unwrap();
+    let minx = cave.iter()
+                   .map(|(x, _)| *x)
+                   .min()
+                   .unwrap();
+    let maxx = cave.iter()
+                   .map(|(x, _)| *x)
+                   .max()
+                   .unwrap();
+    for y in miny..=maxy {
+        for x in minx..=maxx {
+            if cave.contains(&(x, y)) {
+                print!("#");
+            } else {
+                print!(".");
+            }
+        }
+        println!("");
+    }
+}
+*/
+
 fn part2(data: &Data) -> usize {
     let maxy = data.iter()
                    .map(|(_, y)| *y)
@@ -106,6 +141,7 @@ fn part2(data: &Data) -> usize {
                 break;
             }
         }
+        //draw_cave(&cave);
     }
 }
 
