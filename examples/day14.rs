@@ -73,7 +73,40 @@ fn part1(data: &Data) -> usize {
     }
 }
 fn part2(data: &Data) -> usize {
-    unimplemented!()
+    let maxy = data.iter()
+                   .map(|(_, y)| *y)
+                   .max()
+                   .unwrap();
+    let mut cave = data.clone();
+    loop {
+        // Drop from (500,0)
+        let (mut x, mut y) = (500, 0);
+        loop {
+            if y > maxy {
+                // Hit the new floor
+                cave.insert((x, y));
+                break;
+            } else if !cave.contains(&(x, y+1)) {
+                y += 1;
+                continue;
+            } else if !cave.contains(&(x-1, y+1)) {
+                x -= 1;
+                y += 1;
+                continue;
+            } else if !cave.contains(&(x+1, y+1)) {
+                x += 1;
+                y += 1;
+                continue;
+            } else {
+                // Stuck
+                cave.insert((x, y));
+                if (x, y) == (500, 0) {
+                    return cave.len() - data.len();
+                }
+                break;
+            }
+        }
+    }
 }
 
 #[test]
@@ -83,7 +116,7 @@ fn test() {
     let data = parse_input(&tests);
 
     assert_eq!(part1(&data), 24);
-   // assert_eq!(part2(&data), 0);
+    assert_eq!(part2(&data), 93);
 }
 
 fn main() -> std::io::Result<()>{
