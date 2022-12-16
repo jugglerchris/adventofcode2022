@@ -87,8 +87,104 @@ fn part1(data: &Data) -> usize {
 
     find_best_strategy(data, &mut results, &state)
 }
+#[derive(Copy, Clone, Debug, Eq)]
+struct State2 {
+    valve_idx: usize,
+    valve_idx2: usize,
+    open: usize,  // Bit set of open valves
+    time_left: usize,
+}
+
+impl PartialEq for State2 {
+    fn eq(&self, other: &Self) -> bool {
+        (self.valve_idx == other.valve_idx && self.valve_idx2 == other.valve_idx2 && self.open == other.open && self.time_left == other.time_left) ||
+        (self.valve_idx2 == other.valve_idx && self.valve_idx == other.valve_idx2 && self.open == other.open && self.time_left == other.time_left)
+    }
+}
+
+impl std::hash::Hash for State2 {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        // don't care about order
+        if self.valve_idx > self.valve_idx2 {
+            self.valve_idx.hash(state);
+            self.valve_idx2.hash(state);
+        } else {
+            self.valve_idx2.hash(state);
+            self.valve_idx.hash(state);
+        }
+        self.open.hash(state);
+        self.time_left.hash(state);
+    }
+}
+
+fn newstates(data: &Data, state: &State2) -> Vec<(usize, State2)> {
+    let mut result1 = Vec::new();
+    {
+        if (state.open & (1<<state.valve_idx) == 0) &&
+            (data[state.valve_idx].flow > 0) {
+
+                let mut newstate = *state;
+                newstate.open |= 1<<state.valve_idx;
+                newstate.time_left -= 1;
+                let new_flow_released = newstate.time_left * data[state.valve_idx].flow;
+                result1.push((new_flow_released, newstate)); 
+            }
+        for &otherv in &data[state.valve_idx].valves_idx {
+            let mut newstate = *state;
+            newstate.valve_idx = otherv;
+            newstate.time_left -= 1;
+            result1.push((0, newstate));
+        }
+    }
+
+    let mut result2 = Vec::new();
+    for (flow1, newstate1) in result1 {
+        if (newstate1.open & (1<<newstate1.valve_idx2) == 0) &&
+            (data[newstate1.valve_idx2].flow > 0) {
+
+            let mut newstate = newstate1;
+            newstate.open |= 1<<newstate1.valve_idx2;
+            let new_flow_released = newstate.time_left * data[newstate1.valve_idx2].flow;
+            result2.push((new_flow_released + flow1, newstate)); 
+        }
+        for &otherv in &data[newstate1.valve_idx2].valves_idx {
+            let mut newstate = newstate1;
+            newstate.valve_idx2 = otherv;
+            result2.push((flow1, newstate));
+        }
+    }
+    result2
+}
+
+fn find_best2(data: &Data, result: &mut HashMap<State2, usize>, state: &State2) -> usize {
+    if result.contains_key(state) {
+        return *result.get(state).unwrap();
+    }
+    if state.time_left == 0 {
+        return 0;
+    }
+
+    let mut possibilities = vec![];
+
+    for (flow_released, newstate) in newstates(data, state) {
+        possibilities.push(find_best2(data, result, &newstate) + flow_released);
+    }
+    let best = possibilities.into_iter().max().unwrap();
+    result.insert(*state, best);
+    best
+}
+
 fn part2(data: &Data) -> usize {
-    unimplemented!()
+    assert_eq!(data[0].name, "AA");
+    let state = State2 {
+        valve_idx: 0,
+        valve_idx2: 0,
+        open: 0,
+        time_left: 26,
+    };
+    let mut results: HashMap<State2, usize> = HashMap::new();
+
+    find_best2(data, &mut results, &state)
 }
 
 #[test]
@@ -106,7 +202,7 @@ Valve JJ has flow rate=21; tunnel leads to valve II"#;
     let data = parse_input(&tests);
 
     assert_eq!(part1(&data), 1651);
-//    assert_eq!(part2(&data), 0);
+    assert_eq!(part2(&data), 1707);
 }
 
 fn main() -> std::io::Result<()>{
