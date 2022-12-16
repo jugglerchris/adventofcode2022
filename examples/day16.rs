@@ -91,14 +91,14 @@ fn part1(data: &Data) -> usize {
 struct State2 {
     valve_idx: usize,
     valve_idx2: usize,
-    open: usize,  // Bit set of open valves
+    closed: usize,  // Bit set of closed valves
     time_left: usize,
 }
 
 impl PartialEq for State2 {
     fn eq(&self, other: &Self) -> bool {
-        (self.valve_idx == other.valve_idx && self.valve_idx2 == other.valve_idx2 && self.open == other.open && self.time_left == other.time_left) ||
-        (self.valve_idx2 == other.valve_idx && self.valve_idx == other.valve_idx2 && self.open == other.open && self.time_left == other.time_left)
+        (self.valve_idx == other.valve_idx && self.valve_idx2 == other.valve_idx2 && self.closed == other.closed && self.time_left == other.time_left) ||
+        (self.valve_idx2 == other.valve_idx && self.valve_idx == other.valve_idx2 && self.closed == other.closed && self.time_left == other.time_left)
     }
 }
 
@@ -112,7 +112,7 @@ impl std::hash::Hash for State2 {
             self.valve_idx2.hash(state);
             self.valve_idx.hash(state);
         }
-        self.open.hash(state);
+        self.closed.hash(state);
         self.time_left.hash(state);
     }
 }
@@ -120,11 +120,11 @@ impl std::hash::Hash for State2 {
 fn newstates(data: &Data, state: &State2) -> Vec<(usize, State2)> {
     let mut result1 = Vec::new();
     {
-        if (state.open & (1<<state.valve_idx) == 0) &&
+        if (state.closed & (1<<state.valve_idx) != 0) &&
             (data[state.valve_idx].flow > 0) {
 
                 let mut newstate = *state;
-                newstate.open |= 1<<state.valve_idx;
+                newstate.closed &= !(1<<state.valve_idx);
                 newstate.time_left -= 1;
                 let new_flow_released = newstate.time_left * data[state.valve_idx].flow;
                 result1.push((new_flow_released, newstate)); 
@@ -139,11 +139,11 @@ fn newstates(data: &Data, state: &State2) -> Vec<(usize, State2)> {
 
     let mut result2 = Vec::new();
     for (flow1, newstate1) in result1 {
-        if (newstate1.open & (1<<newstate1.valve_idx2) == 0) &&
+        if (newstate1.closed & (1<<newstate1.valve_idx2) != 0) &&
             (data[newstate1.valve_idx2].flow > 0) {
 
             let mut newstate = newstate1;
-            newstate.open |= 1<<newstate1.valve_idx2;
+            newstate.closed &= !(1<<newstate1.valve_idx2);
             let new_flow_released = newstate.time_left * data[newstate1.valve_idx2].flow;
             result2.push((new_flow_released + flow1, newstate)); 
         }
@@ -176,10 +176,16 @@ fn find_best2(data: &Data, result: &mut HashMap<State2, usize>, state: &State2) 
 
 fn part2(data: &Data) -> usize {
     assert_eq!(data[0].name, "AA");
+    let mut useful_valves = 0;
+    for (i, v) in data.iter().enumerate() {
+        if v.flow > 0 {
+            useful_valves |= 1<<i;
+        }
+    }
     let state = State2 {
         valve_idx: 0,
         valve_idx2: 0,
-        open: 0,
+        closed: useful_valves,
         time_left: 26,
     };
     let mut results: HashMap<State2, usize> = HashMap::new();
