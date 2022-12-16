@@ -163,6 +163,9 @@ fn find_best2(data: &Data, result: &mut HashMap<State2, usize>, state: &State2) 
     if state.time_left == 0 {
         return 0;
     }
+    if state.closed == 0 {
+        return 0;
+    }
 
     let mut possibilities = vec![];
 
