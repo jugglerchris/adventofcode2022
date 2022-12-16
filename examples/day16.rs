@@ -48,29 +48,29 @@ struct State {
     time_left: usize,
 }
 
-fn find_best_strategy(data: &Data, result: &mut HashMap<State, usize>, state: &State, flow_released: usize) -> usize {
-    if result.contains_key(&state) {
+fn find_best_strategy(data: &Data, result: &mut HashMap<State, usize>, state: &State) -> usize {
+    if result.contains_key(state) {
         return *result.get(state).unwrap();
     }
     if state.time_left == 0 {
-        return flow_released;
+        return 0;
     }
 
     let mut possibilities = vec![];
     // Otherwise try things.
-    if (state.open & (1<<state.valve_idx)) == 0 {
+    if ((state.open & (1<<state.valve_idx)) == 0) && (data[state.valve_idx].flow > 0) {
         let mut newstate = *state;
         newstate.open |= 1<<state.valve_idx;
         newstate.time_left -= 1;
-        possibilities.push(find_best_strategy(data, result, &newstate, flow_released + newstate.time_left * data[state.valve_idx].flow));
+        let new_flow_released = newstate.time_left * data[state.valve_idx].flow;
+        possibilities.push(find_best_strategy(data, result, &newstate) + new_flow_released);
     }
     for &otherv in &data[state.valve_idx].valves_idx {
         let mut newstate = *state;
         newstate.time_left -= 1;
         newstate.valve_idx = otherv;
-        possibilities.push(find_best_strategy(data, result, &newstate, flow_released));
+        possibilities.push(find_best_strategy(data, result, &newstate));
     }
-    dbg!((state.valve_idx, &data[state.valve_idx].name, state.time_left, &possibilities, flow_released));
     let best = possibilities.into_iter().max().unwrap();
     result.insert(*state, best);
     best
@@ -85,7 +85,7 @@ fn part1(data: &Data) -> usize {
     };
     let mut results: HashMap<State, usize> = HashMap::new();
 
-    find_best_strategy(data, &mut results, &state, 0)
+    find_best_strategy(data, &mut results, &state)
 }
 fn part2(data: &Data) -> usize {
     unimplemented!()
