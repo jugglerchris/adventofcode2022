@@ -1,24 +1,173 @@
 #[allow(unused)]
 use adventofcode2022::{get_input,parse_lines,regex_parser};
 
-type Data = ();
+#[derive(Copy,Clone,Eq,PartialEq,Debug)]
+enum Blow {
+    Left,
+    Right
+}
+
+type Data = Vec<Blow>;
 fn parse_input(input: &str) -> Data {
+    input.trim()
+         .chars()
+         .map(|c| match c {
+             '<' => Blow::Left,
+             '>' => Blow::Right,
+             _ => panic!("Got unexpected character '{c}'"),
+         })
+         .collect()
+}
+
+static PIECES: [&[u8]; 5] = [
+    &[0b11110000
+    ],
+    &[0b01000000,
+      0b11100000,
+      0b01000000
+    ],
+    &[0b11100000,
+      0b00100000,
+      0b00100000
+    ],
+    &[0b10000000,
+      0b10000000,
+      0b10000000,
+      0b10000000
+    ],
+    &[0b11000000,
+      0b11000000
+    ]
+];
+
+fn draw_board(board: &[u8], piece: &[u8], piece_x: i32, piece_y: usize) {
+    let max_y = board.len().max(piece_y + piece.len());
+    eprintln!("");
+    for y in (0..=max_y).rev() {
+        eprint!("|");
+        for x in 0..7 {
+            if y < board.len() && (board[y] << x) & 0x80 != 0 {
+                eprint!("#");
+            } else if (y >= piece_y) &&
+                      (y < piece_y + piece.len()) &&
+                      (piece[y-piece_y] >> piece_x << x) & 0x80 != 0 {
+                eprint!("@");
+            } else {
+                eprint!(".");
+            }
+        }
+        eprintln!("|");
+    }
+    eprintln!("+-------+");
 }
 
 fn part1(data: &Data) -> usize {
-    unimplemented!()
+    let mut board: Vec<u8> = Vec::new();
+
+    let mut moves = data.iter().cycle();
+    let mut pieces = PIECES.iter().cycle();
+
+    for _ in 0..2022 {
+        let mut piece_y = board.len() + 3;
+        let piece: Vec<u8> = pieces.next()
+                                   .unwrap()
+                                   .iter()
+                                   .cloned()
+                                   .collect();
+        let mut piece_x = 2;
+        loop {
+            //draw_board(&board, &piece, piece_x, piece_y);
+            match moves.next().unwrap() {
+                Blow::Left => {
+                    if can_move_left(&board, &piece, piece_x, piece_y) {
+                        piece_x -= 1;
+                    }
+                }
+                Blow::Right => {
+                    if can_move_right(&board, &piece, piece_x, piece_y) {
+                        piece_x += 1;
+                    }
+                }
+            }
+            if can_move_down(&board, &piece, piece_x, piece_y) {
+                piece_y -= 1;
+            } else {
+                for (i, b) in piece.iter().enumerate() {
+                    let y = i + piece_y;
+                    if y >= board.len() {
+                        assert_eq!(y, board.len());
+                        board.push(b >> piece_x);
+                    } else {
+                        board[y] |= b >> piece_x;
+                    }
+                }
+                break;
+            }
+        }
+    }
+    board.len()
 }
+
+fn can_move_down(board: &[u8], piece: &[u8], piece_x: i32, piece_y: usize) -> bool {
+    if piece_y == 0 {
+        return false;
+    }
+    let top = board.len();
+    for (dy, b) in piece.iter().enumerate() {
+        let y = piece_y + dy - 1;
+        if y < top {
+            if ((b >> piece_x) & board[y]) != 0 {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+fn can_move_right(board: &[u8], piece: &[u8], piece_x: i32, piece_y: usize) -> bool {
+    let new_x = piece_x + 1;
+    for &b in piece {
+        if (b >> new_x) & 1 != 0 {
+            return false;
+        }
+    }
+    let top = board.len();
+    for (dy, b) in piece.iter().enumerate() {
+        if piece_y + dy < top {
+            if ((b >> (piece_x+1)) & board[piece_y + dy]) != 0 {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+fn can_move_left(board: &[u8], piece: &[u8], piece_x: i32, piece_y: usize) -> bool {
+    if piece_x == 0 {
+        return false;
+    }
+    let top = board.len();
+    for (dy, b) in piece.iter().enumerate() {
+        if piece_y + dy < top {
+            if ((b >> (piece_x-1)) & board[piece_y + dy]) != 0 {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
 fn part2(data: &Data) -> usize {
     unimplemented!()
 }
 
 #[test]
 fn test() {
-    let tests = r#""#;
+    let tests = r#">>><<><>><<<>><>>><<<>>><<<><<<>><>><<>>"#;
     let data = parse_input(&tests);
 
-    assert_eq!(part1(&data), 0);
-    assert_eq!(part2(&data), 0);
+    assert_eq!(part1(&data), 3068);
+    //assert_eq!(part2(&data), 0);
 }
 
 fn main() -> std::io::Result<()>{
