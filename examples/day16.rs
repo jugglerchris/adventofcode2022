@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 #[allow(unused)]
-use adventofcode2022::{get_input,parse_lines,regex_parser};
+use adventofcode2022::{get_input,parse_lines,regex_parser, timeit};
 
 #[derive(Clone,Debug)]
 pub struct Valve {
@@ -76,6 +76,7 @@ fn find_best_strategy(data: &Data, result: &mut HashMap<State, usize>, state: &S
     best
 }
 
+timeit!{
 fn part1(data: &Data) -> usize {
     assert_eq!(data[0].name, "AA");
     let state = State {
@@ -87,6 +88,8 @@ fn part1(data: &Data) -> usize {
 
     find_best_strategy(data, &mut results, &state)
 }
+}
+
 #[derive(Copy, Clone, Debug, Eq)]
 struct State2 {
     valve_idx: usize,
@@ -177,6 +180,7 @@ fn find_best2(data: &Data, result: &mut HashMap<State2, usize>, state: &State2) 
     best
 }
 
+timeit!{
 fn part2(data: &Data) -> usize {
     assert_eq!(data[0].name, "AA");
     let mut useful_valves = 0;
@@ -194,6 +198,7 @@ fn part2(data: &Data) -> usize {
     let mut results: HashMap<State2, usize> = HashMap::new();
 
     find_best2(data, &mut results, &state)
+}
 }
 
 #[test]
