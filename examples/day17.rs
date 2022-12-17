@@ -203,7 +203,7 @@ fn part2(data: &Data) -> usize {
     let mut board: Vec<u8> = Vec::new();
     let num_blows = data.len();
     let num_pieces = PIECES.len();
-    let loop_size = dbg!(num_blows) * dbg!(num_pieces);
+    let loop_size = num_blows * num_pieces;
 
     let wanted_pieces = 1000000000000usize;
     let repeat_start = wanted_pieces % loop_size + loop_size;
@@ -217,11 +217,11 @@ fn part2(data: &Data) -> usize {
     }
     num_pieces += repeat_start;
 
-    fn get_top_board(board: &[u8]) -> u64 {
+    fn get_top_board(board: &[u8]) -> u128 {
         let blen = board.len();
-        let mut result = 0u64;
-        for i in (blen-8)..blen {
-            result = (result << 8) | (board[i] as u64);
+        let mut result = 0u128;
+        for i in (blen-18)..blen {
+            result = (result << 8) | (board[i] as u128);
         }
         result
     }
@@ -241,10 +241,8 @@ fn part2(data: &Data) -> usize {
     }
     let per_repeat_height = board.len() - repeat_start_count;
     let mega_loop = loop_size * num_loops_to_repeat;
-    dbg!((loop_size, num_loops_to_repeat, mega_loop));
     let num_mega_loops = (wanted_pieces - num_pieces) / mega_loop;
     let extra = num_mega_loops * per_repeat_height;
-    dbg!(extra);
 
     let left_over = wanted_pieces - (mega_loop * num_mega_loops) - num_pieces;
     for _ in 0..left_over {
