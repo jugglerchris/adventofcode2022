@@ -43,7 +43,8 @@ static PIECES: [&[u8]; 5] = [
 fn draw_board(board: &[u8], piece: &[u8], piece_x: i32, piece_y: usize) {
     let max_y = board.len().max(piece_y + piece.len());
     eprintln!("");
-    for y in (0..=max_y).rev() {
+    let min_y = if max_y >= 8 { max_y - 8 } else { 0 };
+    for y in (min_y..=max_y).rev() {
         eprint!("|");
         for x in 0..7 {
             if y < board.len() && (board[y] << x) & 0x80 != 0 {
@@ -157,8 +158,100 @@ fn can_move_left(board: &[u8], piece: &[u8], piece_x: i32, piece_y: usize) -> bo
     return true;
 }
 
+fn do_piece(board: &mut Vec<u8>,
+            moves: &mut dyn Iterator<Item=&Blow>,
+            pieces: &mut dyn Iterator<Item=&&[u8]>) {
+    let mut piece_y = board.len() + 3;
+    let piece: Vec<u8> = pieces.next()
+        .unwrap()
+        .iter()
+        .cloned()
+        .collect();
+    let mut piece_x = 2;
+    loop {
+        //draw_board(&board, &piece, piece_x, piece_y);
+        match moves.next().unwrap() {
+            Blow::Left => {
+                if can_move_left(&board, &piece, piece_x, piece_y) {
+                    piece_x -= 1;
+                }
+            }
+            Blow::Right => {
+                if can_move_right(&board, &piece, piece_x, piece_y) {
+                    piece_x += 1;
+                }
+            }
+        }
+        if can_move_down(&board, &piece, piece_x, piece_y) {
+            piece_y -= 1;
+        } else {
+            for (i, b) in piece.iter().enumerate() {
+                let y = i + piece_y;
+                if y >= board.len() {
+                    assert_eq!(y, board.len());
+                    board.push(b >> piece_x);
+                } else {
+                    board[y] |= b >> piece_x;
+                }
+            }
+            break;
+        }
+    }
+}
+
 fn part2(data: &Data) -> usize {
-    unimplemented!()
+    let mut board: Vec<u8> = Vec::new();
+    let num_blows = data.len();
+    let num_pieces = PIECES.len();
+    let loop_size = dbg!(num_blows) * dbg!(num_pieces);
+
+    let wanted_pieces = 1000000000000usize;
+    let repeat_start = wanted_pieces % loop_size + loop_size;
+
+    let mut moves = data.iter().cycle();
+    let mut pieces = PIECES.iter().cycle();
+
+    let mut num_pieces = 0;
+    for _ in 0..repeat_start {
+        do_piece(&mut board, &mut moves, &mut pieces);
+    }
+    num_pieces += repeat_start;
+
+    fn get_top_board(board: &[u8]) -> u64 {
+        let blen = board.len();
+        let mut result = 0u64;
+        for i in (blen-8)..blen {
+            result = (result << 8) | (board[i] as u64);
+        }
+        result
+    }
+
+    let start_state = get_top_board(&board);
+    let repeat_start_count = board.len();
+    let mut num_loops_to_repeat = 0;
+    loop {
+        for _ in 0..loop_size {
+            do_piece(&mut board, &mut moves, &mut pieces);
+        }
+        num_loops_to_repeat += 1;
+        num_pieces += loop_size;
+        if get_top_board(&board) == start_state {
+            break;
+        }
+    }
+    let per_repeat_height = board.len() - repeat_start_count;
+    let mega_loop = loop_size * num_loops_to_repeat;
+    dbg!((loop_size, num_loops_to_repeat, mega_loop));
+    let num_mega_loops = (wanted_pieces - num_pieces) / mega_loop;
+    let extra = num_mega_loops * per_repeat_height;
+    dbg!(extra);
+
+    let left_over = wanted_pieces - (mega_loop * num_mega_loops) - num_pieces;
+    for _ in 0..left_over {
+        do_piece(&mut board, &mut moves, &mut pieces);
+    }
+
+    board.len() + extra
 }
 
 #[test]
@@ -167,7 +260,7 @@ fn test() {
     let data = parse_input(&tests);
 
     assert_eq!(part1(&data), 3068);
-    //assert_eq!(part2(&data), 0);
+    assert_eq!(part2(&data), 1514285714288);
 }
 
 fn main() -> std::io::Result<()>{
