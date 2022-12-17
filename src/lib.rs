@@ -38,6 +38,21 @@ macro_rules! regex_parser {
         }
 }
 
+#[macro_export]
+macro_rules! timeit {
+    (fn $name:ident ($($arg:ident: $t:ty),*) -> $result:ty $body:block) => {
+        fn $name($($arg : $t),*) -> $result {
+            use std::time::SystemTime;
+            let start = SystemTime::now();
+            let result = $body;
+            let end = SystemTime::now();
+            let duration = end.duration_since(start).unwrap();
+            println!("{} took {}s", std::stringify!($name), duration.as_secs_f32());
+            result
+        }
+    }
+}
+
 pub fn parse_lines<T:FromStr+Debug>(data: &str) -> Vec<T>
    where <T as FromStr>::Err: Debug
 {

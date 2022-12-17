@@ -1,16 +1,18 @@
 #[allow(unused)]
-use adventofcode2022::{get_input,parse_lines,regex_parser};
+use adventofcode2022::{get_input,parse_lines,regex_parser,timeit};
 
 type Data = ();
 fn parse_input(input: &str) -> Data {
 }
 
+timeit!{
 fn part1(data: &Data) -> usize {
     unimplemented!()
-}
+}}
+timeit!{
 fn part2(data: &Data) -> usize {
     unimplemented!()
-}
+}}
 
 #[test]
 fn test() {
