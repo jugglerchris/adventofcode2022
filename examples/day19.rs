@@ -89,9 +89,7 @@ fn find_best_strategy(bp: &Blueprint, result: &mut HashMap<State, usize>, state:
         test_state.ore -= bp.ore_cost;
         possibilities.push(find_best_strategy(bp, result, &test_state));
     }
-    if possibilities.len() == 0 {
-        possibilities.push(find_best_strategy(bp, result, &newstate));
-    }
+    possibilities.push(find_best_strategy(bp, result, &newstate));
 
     let best = possibilities.into_iter().max().unwrap();
     result.insert(*state, best);
@@ -117,7 +115,7 @@ fn part1(data: &Data) -> usize {
 
         let geodes = find_best_strategy(bp, &mut cache, &state);
         dbg!(geodes);
-        total_geodes += geodes;
+        total_geodes += geodes * bp.n;
     }
     total_geodes
 }}
