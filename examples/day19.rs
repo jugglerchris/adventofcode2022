@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use rayon::prelude::*;
 
 #[allow(unused)]
 use adventofcode2022::{get_input,parse_lines,regex_parser,timeit};
@@ -57,7 +58,7 @@ fn find_best_strategy(bp: &Blueprint, result: &mut HashMap<State, usize>, state:
     let geodes_now = state.num_geode_robots;
 
     let mut possibilities = vec![];
-    // Can we build a geode robot?
+    // Can we build a geode robot?  If so always do so.
     if state.obsidian >= bp.geode_cost_obsidian &&
        state.ore >=      bp.geode_cost_ore {
         let mut test_state = newstate;
@@ -65,31 +66,32 @@ fn find_best_strategy(bp: &Blueprint, result: &mut HashMap<State, usize>, state:
         test_state.obsidian -= bp.geode_cost_obsidian;
         test_state.ore -= bp.geode_cost_ore;
         possibilities.push(find_best_strategy(bp, result, &test_state));
+    } else {
+        // Can we build an obsidian robot? 
+        if state.clay >= bp.obsidian_cost_clay &&
+           state.ore >=  bp.obsidian_cost_ore {
+            let mut test_state = newstate;
+            test_state.num_obsidian_robots += 1;
+            test_state.clay -= bp.obsidian_cost_clay;
+            test_state.ore -= bp.obsidian_cost_ore;
+            possibilities.push(find_best_strategy(bp, result, &test_state));
+        }
+        // Or a clay robot?
+        if state.ore >=  bp.clay_cost {
+            let mut test_state = newstate;
+            test_state.num_clay_robots += 1;
+            test_state.ore -= bp.clay_cost;
+            possibilities.push(find_best_strategy(bp, result, &test_state));
+        }
+        // Or an ore robot?
+        if state.ore >=  bp.ore_cost {
+            let mut test_state = newstate;
+            test_state.num_ore_robots += 1;
+            test_state.ore -= bp.ore_cost;
+            possibilities.push(find_best_strategy(bp, result, &test_state));
+        }
+        possibilities.push(find_best_strategy(bp, result, &newstate));
     }
-    // Can we build an obsidian robot? 
-    if state.clay >= bp.obsidian_cost_clay &&
-       state.ore >=  bp.obsidian_cost_ore {
-        let mut test_state = newstate;
-        test_state.num_obsidian_robots += 1;
-        test_state.clay -= bp.obsidian_cost_clay;
-        test_state.ore -= bp.obsidian_cost_ore;
-        possibilities.push(find_best_strategy(bp, result, &test_state));
-    }
-    // Or a clay robot?
-    if state.ore >=  bp.clay_cost {
-        let mut test_state = newstate;
-        test_state.num_clay_robots += 1;
-        test_state.ore -= bp.clay_cost;
-        possibilities.push(find_best_strategy(bp, result, &test_state));
-    }
-    // Or an ore robot?
-    if state.ore >=  bp.ore_cost {
-        let mut test_state = newstate;
-        test_state.num_ore_robots += 1;
-        test_state.ore -= bp.ore_cost;
-        possibilities.push(find_best_strategy(bp, result, &test_state));
-    }
-    possibilities.push(find_best_strategy(bp, result, &newstate));
 
     let best = possibilities.into_iter().max().unwrap();
     result.insert(*state, best);
@@ -99,25 +101,25 @@ fn find_best_strategy(bp: &Blueprint, result: &mut HashMap<State, usize>, state:
 
 timeit!{
 fn part1(data: &Data) -> usize {
-    let mut total_geodes = 0;
-    for bp in data {
-        let mut cache = HashMap::new();
-        let state = State {
-            num_ore_robots: 1,
-            num_clay_robots: 0,
-            num_obsidian_robots: 0,
-            num_geode_robots: 0,
-            ore: 0,
-            clay: 0,
-            obsidian: 0,
-            time_left: 24,
-        };
+    data.par_iter()
+        .map(|bp| {
+            let mut cache = HashMap::new();
+            let state = State {
+                num_ore_robots: 1,
+                num_clay_robots: 0,
+                num_obsidian_robots: 0,
+                num_geode_robots: 0,
+                ore: 0,
+                clay: 0,
+                obsidian: 0,
+                time_left: 24,
+            };
 
-        let geodes = find_best_strategy(bp, &mut cache, &state);
-        dbg!(geodes);
-        total_geodes += geodes * bp.n;
-    }
-    total_geodes
+            let geodes = find_best_strategy(bp, &mut cache, &state);
+            dbg!(geodes);
+            geodes * bp.n
+        })
+        .sum()
 }}
 timeit!{
 fn part2(data: &Data) -> usize {
