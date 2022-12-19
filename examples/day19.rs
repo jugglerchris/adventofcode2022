@@ -99,13 +99,13 @@ fn find_best_strategy(bp: &Blueprint, result: &mut HashMap<State, usize>, state:
 }
 
 fn find_best_strategy2(bp: &Blueprint, result: &mut HashMap<State, usize>, state: &State) -> usize {
-    eprintln!("Entry find_best_strategy2");
+    //eprintln!("Entry find_best_strategy2");
     if result.contains_key(state) {
-        eprintln!(" Returning cached value");
+        //eprintln!(" Returning cached value");
         return *result.get(state).unwrap();
     }
     if state.time_left == 0 {
-        eprintln!(" Returning no time left");
+        //eprintln!(" Returning no time left");
         return 0;
     }
 
@@ -161,42 +161,42 @@ fn find_best_strategy2(bp: &Blueprint, result: &mut HashMap<State, usize>, state
         };
         (ore_time, obsidian_time)
     }
-    dbg!(state);
-    dbg!(newstate);
+    //dbg!(state);
+    //dbg!(newstate);
 
     let mut possibilities = vec![];
     // Can we build a geode robot?  If so always do so.
     if state.obsidian >= bp.geode_cost_obsidian &&
        state.ore >=      bp.geode_cost_ore {
-           dbg!("Building geode robot");
+           //dbg!("Building geode robot");
         let mut test_state = newstate;
         test_state.num_geode_robots += 1;
         test_state.obsidian -= bp.geode_cost_obsidian;
         test_state.ore -= bp.geode_cost_ore;
         possibilities.push(find_best_strategy2(bp, result, &test_state));
     } else {
-       eprintln!("Can't yet afford geode");
+       //eprintln!("Can't yet afford geode");
         // We want to build a geode robot as soon as possible.  How soon?
         let (geode_ore_time, geode_obsidian_time) = time_to_make_geode_robot(bp, &newstate);
-        dbg!((geode_ore_time, geode_obsidian_time));
+        //dbg!((geode_ore_time, geode_obsidian_time));
         if geode_ore_time >= geode_obsidian_time {
-            eprintln!("  Trying to build ore robot first");
+            //eprintln!("  Trying to build ore robot first");
             // Work towards building an ore robot
             if state.ore >= bp.ore_cost {
                 // We can build one
-                eprintln!("    Building ore robot");
+                //eprintln!("    Building ore robot");
                 let mut test_state = newstate;
                 test_state.num_ore_robots += 1;
                 test_state.ore -= bp.ore_cost;
                 possibilities.push(find_best_strategy2(bp, result, &test_state));
             } else {
-                eprintln!("    Waiting before building ore robot");
+                //eprintln!("    Waiting before building ore robot");
                 // We can't build one, we'll have to wait
                 possibilities.push(find_best_strategy2(bp, result, &newstate));
             }
         }
         if geode_ore_time <= geode_obsidian_time {
-            eprintln!("  Trying to build obsidian robot first");
+            //eprintln!("  Trying to build obsidian robot first");
             if (state.ore >= bp.obsidian_cost_ore) && (state.clay >= bp.obsidian_cost_clay) {
                 let mut test_state = newstate;
                 test_state.num_obsidian_robots += 1;
@@ -206,67 +206,30 @@ fn find_best_strategy2(bp: &Blueprint, result: &mut HashMap<State, usize>, state
             } else {
                 // Work towards building an obsidian robot
                 let (obsidian_ore_time, obsidian_clay_time) = time_to_make_obsidian_robot(bp, &newstate);
-                dbg!((obsidian_ore_time, obsidian_clay_time));
-                if obsidian_ore_time >= obsidian_clay_time {
-                    // Work towards building an ore robot
-                    eprintln!("   Trying to build ore robot");
-                    if state.ore >= bp.ore_cost {
-                        // We can build one
-                        eprintln!("    Actually building ore robot");
-                        let mut test_state = newstate;
-                        test_state.num_ore_robots += 1;
-                        test_state.ore -= bp.ore_cost;
-                        let (new_obsidian_ore_time, new_obsidian_clay_time) = {
-                            test_state.time_left -= 1;
-                            let result = time_to_make_obsidian_robot(bp, &test_state);
-                            test_state.time_left += 1;
-                            result
-                        };
-                        if (new_obsidian_ore_time.max(new_obsidian_clay_time) + 1) >
-                            obsidian_ore_time.max(obsidian_clay_time) {
-                            eprintln!("Not building ore robot since it would slow down");
-                            possibilities.push(find_best_strategy2(bp, result, &newstate));
-                        } else {
-                            possibilities.push(find_best_strategy2(bp, result, &test_state));
-                        }
-                    } else {
-                        eprintln!("    Can't build ore robot, waiting");
-                        // We can't build one, we'll have to wait
-                        possibilities.push(find_best_strategy2(bp, result, &newstate));
-                    }
+                //dbg!((obsidian_ore_time, obsidian_clay_time));
+                //eprintln!("   Trying to build ore robot");
+                if state.ore >= bp.ore_cost {
+                    // We can build one
+                    //eprintln!("    Actually building ore robot");
+                    let mut test_state = newstate;
+                    test_state.num_ore_robots += 1;
+                    test_state.ore -= bp.ore_cost;
+                    possibilities.push(find_best_strategy2(bp, result, &test_state));
                 }
-                if obsidian_ore_time <= obsidian_clay_time {
-                    eprintln!("   Trying to build clay robot");
-                    // Work towards building a clay robot
-                    if state.ore >= bp.clay_cost {
-                        // We can build one
-                        eprintln!("     Actually building clay robot");
-                        let mut test_state = newstate;
-                        test_state.num_clay_robots += 1;
-                        test_state.ore -= bp.clay_cost;
-                        let (new_obsidian_ore_time, new_obsidian_clay_time) = {
-                            test_state.time_left -= 1;
-                            let result = time_to_make_obsidian_robot(bp, &test_state);
-                            test_state.time_left += 1;
-                            result
-                        };
-                        if (new_obsidian_ore_time.max(new_obsidian_clay_time) + 1) >
-                            obsidian_ore_time.max(obsidian_clay_time) {
-                            eprintln!("Not building ore clay since it would slow down");
-                            possibilities.push(find_best_strategy2(bp, result, &newstate));
-                        } else {
-                            possibilities.push(find_best_strategy2(bp, result, &test_state));
-                        }
-                    } else {
-                        eprintln!("     Can't build clay robot, waiting");
-                        // We can't build one, we'll have to wait
-                        possibilities.push(find_best_strategy2(bp, result, &newstate));
-                    }
+                // Maybe try a clay robot
+                if state.ore >= bp.clay_cost {
+                    //eprintln!("     Actually building clay robot");
+                    let mut test_state = newstate;
+                    test_state.num_clay_robots += 1;
+                    test_state.ore -= bp.clay_cost;
+                    possibilities.push(find_best_strategy2(bp, result, &test_state));
                 }
+                // Also try waiting
+                possibilities.push(find_best_strategy2(bp, result, &newstate));
             }
         }
     }
-    dbg!(&possibilities);
+    //dbg!(&possibilities);
 
     let best = possibilities.into_iter().max().unwrap();
     result.insert(*state, best);
@@ -275,7 +238,7 @@ fn find_best_strategy2(bp: &Blueprint, result: &mut HashMap<State, usize>, state
 
 timeit!{
 fn part1(data: &Data) -> usize {
-    data.iter()
+    data.par_iter()
         .map(|bp| {
             let mut cache = HashMap::new();
             let state = State {
@@ -314,7 +277,7 @@ fn part2(data: &[Blueprint]) -> usize {
 
             let geodes = find_best_strategy2(bp, &mut cache, &state);
             dbg!(geodes);
-            geodes * bp.n
+            geodes
         })
         .product()
 }}
@@ -326,7 +289,7 @@ Blueprint 2: Each ore robot costs 2 ore. Each clay robot costs 3 ore. Each obsid
     let data = parse_input(&tests);
 
     assert_eq!(part1(&data), 33);
-    assert_eq!(part2(&data[1..]), 62);
+    assert_eq!(part2(&data[1..]), 2*62);
 }
 
 fn main() -> std::io::Result<()>{
