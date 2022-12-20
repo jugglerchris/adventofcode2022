@@ -40,6 +40,7 @@ static PIECES: [&[u8]; 5] = [
     ]
 ];
 
+#[allow(unused)]
 fn draw_board(board: &[u8], piece: &[u8], piece_x: i32, piece_y: usize) {
     let max_y = board.len().max(piece_y + piece.len());
     eprintln!("");

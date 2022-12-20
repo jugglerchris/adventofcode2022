@@ -12,10 +12,10 @@ pub enum Move {
 }
 
 regex_parser!(parse_move: Move {
-    U = r#"^U (\d+)"# => |n: isize| { Move::Up(n) },
-    D = r#"^D (\d+)"# => |n: isize| { Move::Down(n) },
-    L = r#"^L (\d+)"# => |n: isize| { Move::Left(n) },
-    R = r#"^R (\d+)"# => |n: isize| { Move::Right(n) }
+    U = r#"^U (\d+)"# => |n: isize| Move::Up(n),
+    D = r#"^D (\d+)"# => |n: isize| Move::Down(n),
+    L = r#"^L (\d+)"# => |n: isize| Move::Left(n),
+    R = r#"^R (\d+)"# => |n: isize| Move::Right(n)
 });
 
 type Data = Vec<Move>;

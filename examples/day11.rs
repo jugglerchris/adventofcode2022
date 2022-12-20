@@ -20,7 +20,6 @@ enum Operation {
 
 #[derive(Debug, Clone)]
 struct Monkey {
-    idx: usize,
     items: VecDeque<Item>,
     op: Operation,
     divisor: isize,
@@ -38,7 +37,6 @@ fn parse_monkey(input: &str) -> Monkey {
     If false: throw to monkey (\d+)").unwrap();
 
     let caps = re.captures(input).unwrap();
-    let idx: usize = caps[1].parse().unwrap();
     let item_str = &caps[2];
     let items: VecDeque<Item> =
         item_str.split(", ")
@@ -57,7 +55,6 @@ fn parse_monkey(input: &str) -> Monkey {
     let throw_true = caps[6].parse().unwrap();
     let throw_false = caps[7].parse().unwrap();
     Monkey {
-        idx,
         items,
         op,
         divisor,
@@ -76,7 +73,7 @@ fn parse_input(input: &str) -> Data {
 
 fn part1(data: &Data) -> usize {
     let mut monkeys: Vec<Monkey> = data.clone();
-    for round in 0..20 {
+    for _ in 0..20 {
         for i in 0..monkeys.len() {
             let items = monkeys[i].items.iter().cloned().collect::<Vec<_>>();
             monkeys[i].items.clear();
@@ -112,7 +109,7 @@ fn part2(data: &Data) -> usize {
     let modulus: Item = monkeys.iter()
                                .map(|m| m.divisor)
                                .product();
-    for round in 0..10000 {
+    for _ in 0..10000 {
         for i in 0..monkeys.len() {
             let items = monkeys[i].items.iter().cloned().collect::<Vec<_>>();
             monkeys[i].items.clear();
