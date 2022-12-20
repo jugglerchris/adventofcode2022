@@ -10,62 +10,70 @@ fn parse_input(input: &str) -> Data {
 timeit!{
 fn part1(data: &Data) -> isize {
     let tot = data.len();
-    // Orig position to new position
-    let mut index: VecDeque<usize> = (0..tot).collect();
+    // orig_pos, val
+    let mut list: VecDeque<(usize, isize)> =
+        data.iter()
+            .cloned()
+            .enumerate()
+            .collect();
     for orig_pos in 0..tot {
         let v = data[orig_pos];
-        let is_pos = v >= 0;
+        let pos = list.iter()
+                   .enumerate()
+                   .find(|(pos, (op, _))| *op == orig_pos)
+                   .unwrap()
+                   .0;
+        //dbg!((v, pos));
         let av = v.abs() as usize;
-        let start = *index.get(orig_pos % tot).unwrap();
-        let mut a = start;
+        let mut a = pos;
         for _ in 0..av {
-            dbg!(a);
-            if is_pos {
-                if a == tot-1 {
-                    // First move it to the start
-                    let tmp = index.pop_back().unwrap();
-                    index.push_front(tmp);
-                    // And swap it
-                    index.swap(0, 1);
-                    a = 1;
-                } else if a == tot-2 {
-                    index.swap(tot-2, tot-1);
-                    let tmp = index.pop_back().unwrap();
-                    index.push_front(tmp);
+            //dbg!(a);
+            if v >= 0 {
+                // pos
+                if a == tot-2 {
+                    list.swap(tot-2, tot-1);
+                    let tmp = list.pop_back().unwrap();
+                    list.push_front(tmp);
                     a = 0;
+                } else if a == tot-1 {
+                    let tmp = list.pop_back().unwrap();
+                    list.push_front(tmp);
+                    list.swap(0, 1);
+                    a = 1;
                 } else {
-                    index.swap(a, a+1);
-                    a+= 1;
+                    list.swap(a, a+1);
+                    a += 1;
                 }
             } else {
+                // neg
                 if a == 1 {
-                    index.swap(0, 1);
-                    let tmp = index.pop_front().unwrap();
-                    index.push_back(tmp);
+                    list.swap(0, 1);
+                    let tmp = list.pop_front().unwrap();
+                    list.push_back(tmp);
                     a = tot-1;
                 } else if a == 0 {
-                    let tmp = index.pop_front().unwrap();
-                    index.push_back(tmp);
-                    index.swap(tot-2, tot-1);
+                    let tmp = list.pop_front().unwrap();
+                    list.push_back(tmp);
+                    list.swap(tot-1, tot-2);
                     a = tot-2;
                 } else {
-                    index.swap(a, a-1);
+                    list.swap(a, a-1);
                     a -= 1;
                 }
             }
-            let y = index.iter()
-                .map(|i| data[*i])
-                .collect::<Vec<_>>();
-            dbg!((v, y, &index));
         }
-        let x = index.iter()
-            .map(|i| data[*i])
-            .collect::<Vec<_>>();
-        dbg!((v, x));
+        //dbg!(list.iter().map(|(_, v)| v).collect::<Vec<_>>());
     }
     //dbg!(data);
     //dbg!(&index);
-    data[index[999]] + data[index[1999]] + data[index[2999]]
+    let pos = list.iter()
+               .enumerate()
+               .find(|(pos, (_, v))| *v == 0)
+               .unwrap().0;
+    //dbg!(pos);
+    list.get((1000 + pos) % tot).unwrap().1 + 
+    list.get((2000 + pos) % tot).unwrap().1 + 
+    list.get((3000 + pos) % tot).unwrap().1
 }}
 timeit!{
 fn part2(data: &Data) -> isize {
