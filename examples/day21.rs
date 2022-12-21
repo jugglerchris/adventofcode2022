@@ -281,8 +281,8 @@ fn part2(data: &Data) -> isize {
     } else {
         (a.eval(), b)
     };
-    dbg!(hexpr.simplify());
-    dbg!(&c);
+//    dbg!(hexpr.simplify());
+//    dbg!(&c);
 
     let mut hval = 0;
     let mut inc = 0x1000;
@@ -299,7 +299,6 @@ fn part2(data: &Data) -> isize {
     };
     loop {
         inc *= 2;
-        let v0 = hexpr.eval_with_human(hval);
         let v1 = hexpr.eval_with_human(hval + inc);
         if (pos && v1 > c) || (!pos && v1 < c) {
             break;
@@ -313,7 +312,7 @@ fn part2(data: &Data) -> isize {
             while hexpr.eval_with_human(hv-1) == c {
                 hv -= 1;
             }
-            return hv;
+            break hv;
         } else if (pos && v1 < c) || (!pos && v1 > c) {
             hval += inc;
         }
@@ -322,7 +321,81 @@ fn part2(data: &Data) -> isize {
             panic!();
         }
     }
-    unreachable!()
+}}
+
+timeit!{
+fn part2a(data: &Data) -> isize {
+    let mut monkeys: HashMap<String, Op> =
+        data.iter()
+            .map(|m| (m.name.clone(), m.op.clone()))
+            .collect();
+
+    let (a_name, b_name): (String, String) =
+           match monkeys.get_mut("root").unwrap() {
+               Op::Add(a, b) => (a.clone(), b.clone()),
+               _ => panic!(),
+           };
+    let a = get_inline_op(&monkeys, &a_name);
+    let b = get_inline_op(&monkeys, &b_name);
+
+    let (mut c, mut hexpr) = if a.has_human() {
+        (b.eval(), a.simplify())
+    } else {
+        (a.eval(), b.simplify())
+    };
+//    dbg!(hexpr.simplify());
+//    dbg!(&c);
+
+    loop {
+        match hexpr {
+            InlineOp::Const(_) => unreachable!(),
+            InlineOp::Human => break c,
+            InlineOp::Add(a, b) => {
+                if let InlineOp::Const(n) = *a {
+                    c -= n;
+                    hexpr = *b;
+                } else if let InlineOp::Const(n) = *b {
+                    c -= n;
+                    hexpr = *a;
+                } else {
+                    unreachable!()
+                }
+            }
+            InlineOp::Sub(a, b) => {
+                if let InlineOp::Const(n) = *a {
+                    c = n - c;
+                    hexpr = *b;
+                } else if let InlineOp::Const(n) = *b {
+                    c += n;
+                    hexpr = *a;
+                } else {
+                    unreachable!()
+                }
+            }
+            InlineOp::Mul(a, b) => {
+                if let InlineOp::Const(n) = *a {
+                    c = c / n;
+                    hexpr = *b;
+                } else if let InlineOp::Const(n) = *b {
+                    c = c / n;
+                    hexpr = *a;
+                } else {
+                    unreachable!()
+                }
+            }
+            InlineOp::Div(a, b) => {
+                if let InlineOp::Const(n) = *a {
+                    c = n / c;
+                    hexpr = *b;
+                } else if let InlineOp::Const(n) = *b {
+                    c = c * n;
+                    hexpr = *a;
+                } else {
+                    unreachable!()
+                }
+            }
+        }
+    }
 }}
 
 #[test]
@@ -346,6 +419,7 @@ hmdt: 32"#;
 
     assert_eq!(part1(&data), 152);
     assert_eq!(part2(&data), 301);
+    assert_eq!(part2a(&data), 301);
 }
 
 fn main() -> std::io::Result<()>{
@@ -358,6 +432,7 @@ fn main() -> std::io::Result<()>{
 
     // Part 2
     println!("{}", part2(&data));
+    println!("{}", part2a(&data));
 
     Ok(())
 }
