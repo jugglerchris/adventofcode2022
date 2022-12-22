@@ -118,6 +118,121 @@ impl Board {
             }
         }
     }
+    pub fn forward_square(&self, x: usize, y: usize, facing: Facing) -> (Facing, usize, usize) {
+        match facing {
+            Facing::Right => {
+                let row = &self.rows[y];
+                let mut newx = x+1;
+                let mut newy = y;
+                let mut newfacing = facing;
+                if newx >= row.start + row.spaces.len() {
+                    if newx == 150 {
+                        assert!(y < 50);
+                        newx = 99;
+                        newy = 149-y;
+                        newfacing = Facing::Left;
+                    } else if newx == 100 && y < 100 {
+                        newfacing = Facing::Up;
+                        newx = 100 + (y - 50);
+                        newy = 49;
+                    } else if newx == 100 && y < 150 {
+                        newx = 149;
+                        newy = 149 - y;
+                        newfacing = Facing::Right;
+                    } else if newx == 50 {
+                        assert!(y >= 150);
+                        newy = 149;
+                        newx = 50 + (y - 150);
+                        newfacing = Facing::Up;
+                    }
+                }
+                match self.get_space(newx, newy) {
+                    Space::Wall => (facing, x, y),
+                    Space::Empty => (newfacing, newx, newy),
+                }
+            }
+            Facing::Down => {
+                let mut newy = y + 1;
+                let mut newx = x;
+                let mut newfacing = facing;
+                if !self.has_space(x, newy) {
+                    if newy == 50 && x >= 100 {
+                        newfacing = Facing::Left;
+                        newx = 99;
+                        newy = (x - 100) + 50;
+                    } else if x >= 50 && newy == 150 {
+                        newfacing = Facing::Left;
+                        newx = 49;
+                        newy = 150 + (x - 50);
+                    } else if newy == 200 {
+                        // ??
+                        newfacing = Facing::Down;
+                        newy = 0;
+                        newx = x + 100;
+                    }
+                }
+                match self.get_space(newx, newy) {
+                    Space::Wall => (facing, x, y),
+                    Space::Empty => (newfacing, newx, newy),
+                }
+            }
+            Facing::Left => {
+                let row = &self.rows[y];
+                let mut newx = x;
+                let mut newy = y;
+                let mut newfacing = facing;
+                if x == row.start {
+                    if y < 50 {
+                        newx = 0;
+                        newy = 149 - y;
+                        newfacing = Facing::Right;
+                    } else if y < 100 {
+                        newy = 100;
+                        newx = y - 50;
+                        newfacing = Facing::Down;
+                    } else if y < 150 {
+                        newx = 50;
+                        newy = 149 - y;
+                        newfacing = Facing::Right;
+                    } else {
+                        newy = 0;
+                        newfacing = Facing::Down;
+                        newx = y - 50;
+                    }
+                }
+                match self.get_space(newx, newy) {
+                    Space::Wall => (facing, x, y),
+                    Space::Empty => (newfacing, newx, newy),
+                }
+            }
+            Facing::Up => {
+                let mut newx = x;
+                let mut newy = y;
+                let mut newfacing = facing;
+                if y == 0 || !self.has_space(x, y-1) {
+                    if y == 0 && x < 100 {
+                        newfacing = Facing::Right;
+                        newy = x-50 + 150;
+                        newx = 0;
+                    } else if y == 0 && x >= 100 {
+                        newfacing = Facing::Up;
+                        newy = 199;
+                        newx = x - 100;
+                    } else if y == 100 && x < 50 {
+                        newfacing = Facing::Right;
+                        newx = 50;
+                        newy = x + 50;
+                    } else {
+                        unreachable!();
+                    }
+                }
+                match self.get_space(newx, newy) {
+                    Space::Wall => (facing, x, y),
+                    Space::Empty => (newfacing, newx, newy),
+                }
+            }
+        }
+    }
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -225,7 +340,31 @@ fn part1(data: &Data) -> usize {
 }}
 timeit!{
 fn part2(data: &Data) -> usize {
-    unimplemented!()
+    let mut x = data.board.rows[0].start;
+    let mut y = 0;
+    let mut facing = Facing::Right;
+    for mv in &data.moves {
+        //dbg!((x, y, facing, mv));
+        match mv {
+            Move::RotateLeft => {
+                facing = facing.turn_left();
+            }
+            Move::RotateRight => {
+                facing = facing.turn_right();
+            }
+            Move::Forward(dist) => {
+                for _ in 0..*dist {
+                    //dbg!((x, y, facing));
+                    let (newfacing, newx, newy) = data.board.forward_square(x, y, facing);
+                    //dbg!((newx, newy, newfacing));
+                    facing = newfacing;
+                    x = newx;
+                    y = newy;
+                }
+            }
+        }
+    }
+    ((y+1)*1000) + ((x+1) * 4) + (facing as usize)
 }}
 
 #[test]
