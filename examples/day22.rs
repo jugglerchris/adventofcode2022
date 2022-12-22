@@ -1,7 +1,7 @@
 #[allow(unused)]
 use adventofcode2022::{get_input,parse_lines,regex_parser,timeit};
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Facing {
     Right = 0,
     Down = 1,
@@ -24,6 +24,14 @@ impl Facing {
             Facing::Down => Facing::Right,
             Facing::Left => Facing::Down,
             Facing::Up => Facing::Left,
+        }
+    }
+    pub fn turn_around(&self) -> Self {
+        match self {
+            Facing::Right => Facing::Left,
+            Facing::Down => Facing::Up,
+            Facing::Left => Facing::Right,
+            Facing::Up => Facing::Down,
         }
     }
 }
@@ -118,7 +126,7 @@ impl Board {
             }
         }
     }
-    pub fn forward_square(&self, x: usize, y: usize, facing: Facing) -> (Facing, usize, usize) {
+    pub fn forward_cube(&self, x: usize, y: usize, facing: Facing) -> (Facing, usize, usize) {
         match facing {
             Facing::Right => {
                 let row = &self.rows[y];
@@ -138,7 +146,7 @@ impl Board {
                     } else if newx == 100 && y < 150 {
                         newx = 149;
                         newy = 149 - y;
-                        newfacing = Facing::Right;
+                        newfacing = Facing::Left;
                     } else if newx == 50 {
                         assert!(y >= 150);
                         newy = 149;
@@ -197,8 +205,12 @@ impl Board {
                     } else {
                         newy = 0;
                         newfacing = Facing::Down;
-                        newx = y - 50;
+                        newx = y - 150 + 50;
                     }
+                } else {
+                    newx = x - 1;
+                    newy = y;
+                    newfacing = facing;
                 }
                 match self.get_space(newx, newy) {
                     Space::Wall => (facing, x, y),
@@ -225,7 +237,11 @@ impl Board {
                     } else {
                         unreachable!();
                     }
+                } else {
+                    newx = x;
+                    newy = y-1;
                 }
+                //dbg!((newx, newy));
                 match self.get_space(newx, newy) {
                     Space::Wall => (facing, x, y),
                     Space::Empty => (newfacing, newx, newy),
@@ -354,9 +370,15 @@ fn part2(data: &Data) -> usize {
             }
             Move::Forward(dist) => {
                 for _ in 0..*dist {
-                    //dbg!((x, y, facing));
-                    let (newfacing, newx, newy) = data.board.forward_square(x, y, facing);
-                    //dbg!((newx, newy, newfacing));
+                    let (newfacing, newx, newy) = (data.board.forward_cube(x, y, facing));
+                    /*
+                    if (x, y) != (newx, newy) {
+                        dbg!((newx, newy, newfacing.turn_around()));
+                        let (back, oldx, oldy) = data.board.forward_cube(newx, newy, newfacing.turn_around());
+                        dbg!(newfacing.turn_around());
+                        assert_eq!((oldx, oldy, back.turn_around()), (x, y, facing));
+                    }
+                    */
                     facing = newfacing;
                     x = newx;
                     y = newy;
