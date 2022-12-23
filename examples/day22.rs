@@ -128,129 +128,6 @@ impl Board {
             }
         }
     }
-    pub fn forward_cube(&self, x: usize, y: usize, facing: Facing) -> (Facing, usize, usize) {
-        match facing {
-            Facing::Right => {
-                let row = &self.rows[y];
-                let mut newx = x+1;
-                let mut newy = y;
-                let mut newfacing = facing;
-                if newx >= row.start + row.spaces.len() {
-                    if newx == 150 {
-                        assert!(y < 50);
-                        newx = 99;
-                        newy = 149-y;
-                        newfacing = Facing::Left;
-                    } else if newx == 100 && y < 100 {
-                        newfacing = Facing::Up;
-                        newx = 100 + (y - 50);
-                        newy = 49;
-                    } else if newx == 100 && y < 150 {
-                        newx = 149;
-                        newy = 149 - y;
-                        newfacing = Facing::Left;
-                    } else if newx == 50 {
-                        assert!(y >= 150);
-                        newy = 149;
-                        newx = 50 + (y - 150);
-                        newfacing = Facing::Up;
-                    }
-                }
-                match self.get_space(newx, newy) {
-                    Space::Wall => (facing, x, y),
-                    Space::Empty => (newfacing, newx, newy),
-                }
-            }
-            Facing::Down => {
-                let mut newy = y + 1;
-                let mut newx = x;
-                let mut newfacing = facing;
-                if !self.has_space(x, newy) {
-                    if newy == 50 && x >= 100 {
-                        newfacing = Facing::Left;
-                        newx = 99;
-                        newy = (x - 100) + 50;
-                    } else if x >= 50 && newy == 150 {
-                        newfacing = Facing::Left;
-                        newx = 49;
-                        newy = 150 + (x - 50);
-                    } else if newy == 200 {
-                        // ??
-                        newfacing = Facing::Down;
-                        newy = 0;
-                        newx = x + 100;
-                    }
-                }
-                match self.get_space(newx, newy) {
-                    Space::Wall => (facing, x, y),
-                    Space::Empty => (newfacing, newx, newy),
-                }
-            }
-            Facing::Left => {
-                let row = &self.rows[y];
-                let mut newx = x;
-                let mut newy = y;
-                let mut newfacing = facing;
-                if x == row.start {
-                    if y < 50 {
-                        newx = 0;
-                        newy = 149 - y;
-                        newfacing = Facing::Right;
-                    } else if y < 100 {
-                        newy = 100;
-                        newx = y - 50;
-                        newfacing = Facing::Down;
-                    } else if y < 150 {
-                        newx = 50;
-                        newy = 149 - y;
-                        newfacing = Facing::Right;
-                    } else {
-                        newy = 0;
-                        newfacing = Facing::Down;
-                        newx = y - 150 + 50;
-                    }
-                } else {
-                    newx = x - 1;
-                    newy = y;
-                    newfacing = facing;
-                }
-                match self.get_space(newx, newy) {
-                    Space::Wall => (facing, x, y),
-                    Space::Empty => (newfacing, newx, newy),
-                }
-            }
-            Facing::Up => {
-                let mut newx = x;
-                let mut newy = y;
-                let mut newfacing = facing;
-                if y == 0 || !self.has_space(x, y-1) {
-                    if y == 0 && x < 100 {
-                        newfacing = Facing::Right;
-                        newy = x-50 + 150;
-                        newx = 0;
-                    } else if y == 0 && x >= 100 {
-                        newfacing = Facing::Up;
-                        newy = 199;
-                        newx = x - 100;
-                    } else if y == 100 && x < 50 {
-                        newfacing = Facing::Right;
-                        newx = 50;
-                        newy = x + 50;
-                    } else {
-                        unreachable!();
-                    }
-                } else {
-                    newx = x;
-                    newy = y-1;
-                }
-                //dbg!((newx, newy));
-                match self.get_space(newx, newy) {
-                    Space::Wall => (facing, x, y),
-                    Space::Empty => (newfacing, newx, newy),
-                }
-            }
-        }
-    }
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -401,12 +278,12 @@ impl Matrix {
     }
 
     pub fn fold_down(&self) -> Matrix {
-        &Matrix {
+        self * &Matrix {
             m: [1, 0, 0,
-                0, 0, 1,
-                0, -1, 0,
+            0, 0, 1,
+            0, -1, 0,
             ]
-        } * self
+        }
     }
 }
 
@@ -486,19 +363,25 @@ fn test_vector() {
 struct CubeMap<'d> {
     data: &'d Data,
     side_len: usize,
+    // transformation matrix for each square, indexed by top-left
     square_mappings: HashMap<(usize, usize), Matrix>,
+    // Corner labels from normalized corner coordinates
     coord_to_corner_name: HashMap<Vector, u8>,
+    // Map from pairs of coordinate labels in left,right order as you enter the square, to 
+    // the corresponding corner coordinates on the flat map and the direction you face
+    // to enter it.
+    edge_to_locations: HashMap<(u8, u8), ((usize, usize), (usize, usize), Facing)>,
 }
 
 impl<'d> CubeMap<'d> {
     pub fn new(data: &'d Data) -> CubeMap<'d> {
         let side_len =
             data.board
-                .rows
-                .iter()
-                .map(|r| r.spaces.len())
-                .min()
-                .unwrap();
+            .rows
+            .iter()
+            .map(|r| r.spaces.len())
+            .min()
+            .unwrap();
 
         let x = data.board.rows[0].start;
         let y = 0;
@@ -509,23 +392,42 @@ impl<'d> CubeMap<'d> {
 
         let coord_to_corner_name: HashMap<Vector, u8> =
             [(Vector::new(-1, -1, 1), b'A'),
-             (Vector::new(1, -1, 1), b'B'),
-             (Vector::new(-1, 1, 1), b'C'),
-             (Vector::new(1, 1, 1), b'D'),
-             (Vector::new(-1, -1, -1), b'E'),
-             (Vector::new(1, -1, -1), b'F'),
-             (Vector::new(-1, 1, -1), b'G'),
-             (Vector::new(1, 1, -1), b'H'),
+            (Vector::new(1, -1, 1), b'B'),
+            (Vector::new(-1, 1, 1), b'C'),
+            (Vector::new(1, 1, 1), b'D'),
+            (Vector::new(-1, -1, -1), b'E'),
+            (Vector::new(1, -1, -1), b'F'),
+            (Vector::new(-1, 1, -1), b'G'),
+            (Vector::new(1, 1, -1), b'H'),
             ].into_iter()
-             .collect();
+                .collect();
+
+        let mut edge_to_locations = HashMap::new();
 
         while let Some((x, y, matrix)) = work.pop() {
-            dbg!((x, y, &matrix));
             if square_mappings.contains_key(&(x, y)) {
                 assert_eq!(square_mappings.get(&(x, y)).unwrap(), &matrix);
                 continue;
             }
             square_mappings.insert((x, y), matrix.clone());
+            let tl = &matrix * Vector::new(-1, -1, 1);
+            let tr = &matrix * Vector::new(1, -1, 1);
+            let bl = &matrix * Vector::new(-1, 1, 1);
+            let br = &matrix * Vector::new(1, 1, 1);
+            let tl = *coord_to_corner_name.get(&tl).unwrap();
+            let tlc = (x, y);
+            let tr = *coord_to_corner_name.get(&tr).unwrap();
+            let trc = (x+side_len-1, y);
+            let bl = *coord_to_corner_name.get(&bl).unwrap();
+            let blc = (x, y+side_len-1);
+            let br = *coord_to_corner_name.get(&br).unwrap();
+            let brc = (x+side_len-1, y+side_len-1);
+
+            edge_to_locations.insert((tr, tl), (trc, tlc, Facing::Down));
+            edge_to_locations.insert((br, tr), (brc, trc, Facing::Left));
+            edge_to_locations.insert((bl, br), (blc, brc, Facing::Up));
+            edge_to_locations.insert((tl, bl), (tlc, blc, Facing::Right));
+
             if data.board.has_space(x+side_len, y) {
                 work.push((x+side_len, y, matrix.fold_right()));
             }
@@ -542,9 +444,11 @@ impl<'d> CubeMap<'d> {
             side_len,
             square_mappings,
             coord_to_corner_name,
+            edge_to_locations
         }
     }
 
+    #[cfg(test)]
     pub fn print_plain(&self) {
         for (y, row) in self.data.board.rows.iter().enumerate() {
             for _ in 0..row.start {
@@ -555,34 +459,155 @@ impl<'d> CubeMap<'d> {
                 let local_x = x % self.side_len;
                 let local_y = y % self.side_len;
                 if (local_x == 0 || local_x == self.side_len-1) &&
-                   (local_y == 0 || local_y == self.side_len-1) {
-                    let sq_x = x-(x%self.side_len);
-                    let sq_y = y-(y%self.side_len);
-                    let mat = self.square_mappings.get(&(sq_x, sq_y)).unwrap();
-                    let x3 = if local_x == 0 { -1 } else { 1 };
-                    let y3 = if local_y == 0 { -1 } else { 1 };
-                    let coord = mat * Vector::new(x3, y3, 1);
-                    print!("{}", *self.coord_to_corner_name.get(&coord).unwrap() as char);
-                } else {
-                    match sp {
-                        Space::Wall => print!("#"),
-                        Space::Empty => print!("."),
+                    (local_y == 0 || local_y == self.side_len-1) {
+                        let sq_x = x-(x%self.side_len);
+                        let sq_y = y-(y%self.side_len);
+                        let mat = self.square_mappings.get(&(sq_x, sq_y)).unwrap();
+                        let x3 = if local_x == 0 { -1 } else { 1 };
+                        let y3 = if local_y == 0 { -1 } else { 1 };
+                        let coord = mat * Vector::new(x3, y3, 1);
+                        print!("{}", *self.coord_to_corner_name.get(&coord).unwrap() as char);
+                    } else {
+                        match sp {
+                            Space::Wall => print!("#"),
+                            Space::Empty => print!("."),
+                        }
                     }
-                }
             }
             println!("");
         }
     }
+
+    fn map_edge_pos(&self, offset: usize, start: (usize, usize), end: (usize, usize)) -> (usize, usize)
+    {
+        if start.0 > end.0 {
+            (start.0 - offset, start.1)
+        } else if start.0 < end.0 {
+            (start.0 + offset, start.1)
+        } else if start.1 > end.1 {
+            (start.0, start.1 - offset)
+        } else if start.1 < end.1 {
+            (start.0, start.1 + offset)
+        } else {
+            unreachable!()
+        }
+    }
+
+    pub fn forward(&self, x: usize, y: usize, facing: Facing) -> (Facing, usize, usize) {
+        let board = &self.data.board;
+        match facing {
+            Facing::Right => {
+                let row = &board.rows[y];
+                let mut newx = x+1;
+                let mut newy = y;
+                let mut newfacing = facing;
+                if newx >= row.start + row.spaces.len() {
+                    let matrix = self.get_matrix((x, y));
+                    let edge_end0 = matrix * Vector::new(1, -1, 1);
+                    let edge_end1 = matrix * Vector::new(1, 1, 1);
+                    let cornerl = *self.coord_to_corner_name.get(&edge_end0).unwrap();
+                    let cornerr = *self.coord_to_corner_name.get(&edge_end1).unwrap();
+                    let (el, er, newfacing2) = self.edge_to_locations.get(&(cornerl, cornerr)).unwrap().clone();
+                    newfacing = newfacing2;
+                    let (newx2, newy2) = self.map_edge_pos(y % self.side_len, el, er);
+                    newx = newx2;
+                    newy = newy2;
+                }
+                match board.get_space(newx, newy) {
+                    Space::Wall => (facing, x, y),
+                    Space::Empty => (newfacing, newx, newy),
+                }
+            }
+            Facing::Down => {
+                let mut newy = y + 1;
+                let mut newx = x;
+                let mut newfacing = facing;
+                if !board.has_space(x, newy) {
+                    let matrix = self.get_matrix((x, y));
+                    let edge_end0 = matrix * Vector::new(1, 1, 1);
+                    let edge_end1 = matrix * Vector::new(-1, 1, 1);
+                    let cornerl = *self.coord_to_corner_name.get(&edge_end0).unwrap();
+                    let cornerr = *self.coord_to_corner_name.get(&edge_end1).unwrap();
+                    let (el, er, newfacing2) = self.edge_to_locations.get(&(cornerl, cornerr)).unwrap().clone();
+                    newfacing = newfacing2;
+                    let (newx2, newy2) = self.map_edge_pos(self.side_len - 1 - (x % self.side_len), el, er);
+                    newx = newx2;
+                    newy = newy2;
+                }
+                match board.get_space(newx, newy) {
+                    Space::Wall => (facing, x, y),
+                    Space::Empty => (newfacing, newx, newy),
+                }
+            }
+            Facing::Left => {
+                let row = &board.rows[y];
+                let newx;
+                let newy;
+                let newfacing;
+                if x == row.start {
+                    let matrix = self.get_matrix((x, y));
+                    let edge_end0 = matrix * Vector::new(-1, 1, 1);
+                    let edge_end1 = matrix * Vector::new(-1, -1, 1);
+                    let cornerl = *self.coord_to_corner_name.get(&edge_end0).unwrap();
+                    let cornerr = *self.coord_to_corner_name.get(&edge_end1).unwrap();
+                    let (el, er, newfacing2) = self.edge_to_locations.get(&(cornerl, cornerr)).unwrap().clone();
+                    newfacing = newfacing2;
+                    let (newx2, newy2) = self.map_edge_pos(self.side_len - 1 - (y % self.side_len), el, er);
+                    newx = newx2;
+                    newy = newy2;
+                } else {
+                    newx = x - 1;
+                    newy = y;
+                    newfacing = facing;
+                }
+                match board.get_space(newx, newy) {
+                    Space::Wall => (facing, x, y),
+                    Space::Empty => (newfacing, newx, newy),
+                }
+            }
+            Facing::Up => {
+                let newx;
+                let newy;
+                let mut newfacing = facing;
+                if y == 0 || !board.has_space(x, y-1) {
+                    let matrix = self.get_matrix((x, y));
+                    let edge_end0 = matrix * Vector::new(-1, 1, 1);
+                    let edge_end1 = matrix * Vector::new(1, 1, 1);
+                    let cornerl = *self.coord_to_corner_name.get(&edge_end0).unwrap();
+                    let cornerr = *self.coord_to_corner_name.get(&edge_end1).unwrap();
+                    let (el, er, newfacing2) = self.edge_to_locations.get(&(cornerl, cornerr)).unwrap().clone();
+                    newfacing = newfacing2;
+                    let (newx2, newy2) = self.map_edge_pos(x % self.side_len, el, er);
+                    newx = newx2;
+                    newy = newy2;
+                } else {
+                    newx = x;
+                    newy = y-1;
+                }
+                match board.get_space(newx, newy) {
+                    Space::Wall => (facing, x, y),
+                    Space::Empty => (newfacing, newx, newy),
+                }
+            }
+        }
+    }
+
+    fn get_matrix(&self, (x, y): (usize, usize)) -> &Matrix {
+        let ox = x - (x % self.side_len);
+        let oy = y - (y % self.side_len);
+        self.square_mappings.get(&(ox, oy)).unwrap()
+    }
 }
 
 timeit!{
-fn part2(data: &Data) -> usize {
-    let cube_map = CubeMap::new(data);
-    //cube_map.print_plain();
-    let mut x = data.board.rows[0].start;
-    let mut y = 0;
-    let mut facing = Facing::Right;
-    for mv in &data.moves {
+    fn part2(data: &Data) -> usize {
+        let cube_map = CubeMap::new(data);
+        #[cfg(test)]
+        cube_map.print_plain();
+        let mut x = data.board.rows[0].start;
+        let mut y = 0;
+        let mut facing = Facing::Right;
+        for mv in &data.moves {
         match mv {
             Move::RotateLeft => {
                 facing = facing.turn_left();
@@ -592,9 +617,10 @@ fn part2(data: &Data) -> usize {
             }
             Move::Forward(dist) => {
                 for _ in 0..*dist {
-                    let (newx, newy) = cube_map.forward(x, y, facing);
+                    let (newfacing, newx, newy) = cube_map.forward(x, y, facing);
                     x = newx;
                     y = newy;
+                    facing = newfacing;
                 }
             }
         }
