@@ -578,8 +578,28 @@ impl<'d> CubeMap<'d> {
 timeit!{
 fn part2(data: &Data) -> usize {
     let cube_map = CubeMap::new(data);
-    cube_map.print_plain();
-    0
+    //cube_map.print_plain();
+    let mut x = data.board.rows[0].start;
+    let mut y = 0;
+    let mut facing = Facing::Right;
+    for mv in &data.moves {
+        match mv {
+            Move::RotateLeft => {
+                facing = facing.turn_left();
+            }
+            Move::RotateRight => {
+                facing = facing.turn_right();
+            }
+            Move::Forward(dist) => {
+                for _ in 0..*dist {
+                    let (newx, newy) = cube_map.forward(x, y, facing);
+                    x = newx;
+                    y = newy;
+                }
+            }
+        }
+    }
+    ((y+1)*1000) + ((x+1) * 4) + (facing as usize)
 }}
 
 #[test]
