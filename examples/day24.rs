@@ -146,13 +146,13 @@ fn draw_board(data: &Data, t: usize, positions: &HashSet<(usize, usize)>) {
     println!("blizzards: {num_blizzards}");
 }
 
-timeit!{
-fn part1(data: &Data) -> usize {
-    let mut t = 0;
+fn find_route(data: &Data, t0: usize, start: (usize, usize), end: (usize, usize)) -> usize
+{
+    let mut t = t0;
     // Positions here have the starting place at (0, 0),
     // so the left wall is at x=-1 and the top wall at y=0.
     let mut positions = HashSet::new();
-    positions.insert((0usize, 0usize));
+    positions.insert(start);
 
     loop {
         //draw_board(data, t, &positions);
@@ -170,8 +170,8 @@ fn part1(data: &Data) -> usize {
                 }
                 // Can also stay put.
                 new_positions.insert((0, 0));
-            } else if y == data.height && x == data.width-1 {
-                return t+1;
+            } else if (x, y) == end {
+                return t;
             } else {
                 if will_be_empty(data, t+1, (x, y)) {
                     new_positions.insert((x, y));
@@ -194,10 +194,17 @@ fn part1(data: &Data) -> usize {
         positions = new_positions;
         t += 1;
     }
+}
+
+timeit!{
+fn part1(data: &Data) -> usize {
+    find_route(data, 0, (0, 0), (data.width-1, data.height)) + 1
 }}
 timeit!{
 fn part2(data: &Data) -> usize {
-    unimplemented!()
+    let t1 = find_route(data, 0, (0, 0), (data.width-1, data.height)) + 1;
+    let t2 = find_route(data, t1, (data.width-1, data.height+1), (0, 1)) + 1;
+    find_route(data, t2, (0, 0), (data.width-1, data.height)) + 1
 }}
 
 #[test]
@@ -211,7 +218,7 @@ fn test() {
     let data = parse_input(&tests);
 
     assert_eq!(part1(&data), 18);
-//    assert_eq!(part2(&data), 0);
+    assert_eq!(part2(&data), 54);
 }
 
 fn main() -> std::io::Result<()>{
